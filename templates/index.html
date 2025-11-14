@@ -39,7 +39,7 @@
       }
       li {
         display: grid;
-        grid-template-columns: 56px 1fr;
+        grid-template-columns: 56px 1fr auto;
         gap: 12px;
         padding: 12px 0;
         border-bottom: 1px solid rgba(127, 127, 127, 0.2);
@@ -76,6 +76,79 @@
       a {
         color: inherit;
       }
+      .submit-form {
+        background: rgba(127, 127, 127, 0.1);
+        border: 1px solid rgba(127, 127, 127, 0.3);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 24px;
+      }
+      .submit-form h2 {
+        font-size: 18px;
+        margin: 0 0 16px;
+      }
+      .form-group {
+        margin-bottom: 12px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 500;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid rgba(127, 127, 127, 0.4);
+        border-radius: 4px;
+        background: Canvas;
+        color: CanvasText;
+        font-family: inherit;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      .submit-button {
+        background: rgba(127, 127, 127, 0.2);
+        border: 1px solid rgba(127, 127, 127, 0.4);
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .submit-button:hover {
+        background: rgba(127, 127, 127, 0.3);
+      }
+      .flash-messages {
+        margin-bottom: 20px;
+      }
+      .flash-message {
+        padding: 12px;
+        background: rgba(255, 100, 100, 0.2);
+        border: 1px solid rgba(255, 100, 100, 0.4);
+        border-radius: 6px;
+        margin-bottom: 12px;
+      }
+      .hide-button {
+        background: transparent;
+        border: 1px solid rgba(127, 127, 127, 0.4);
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        align-self: flex-start;
+      }
+      .hide-button:hover {
+        background: rgba(127, 127, 127, 0.15);
+      }
+      .hidden-section {
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 2px solid rgba(127, 127, 127, 0.3);
+      }
+      .hidden-section h2 {
+        font-size: 18px;
+        margin: 0 0 16px;
+        color: rgba(127, 127, 127, 0.7);
+      }
     </style>
   </head>
 
@@ -87,14 +160,76 @@
     </header>
 
     <main class="container">
+      <!-- Feature B: Flash messages for validation errors -->
+      <!-- Displays error messages when post submission fails validation -->
+      {% with messages = get_flashed_messages() %} {% if messages %}
+      <div class="flash-messages">
+        {% for message in messages %}
+        <div class="flash-message">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %} {% endwith %}
+
+      <!-- ================================================================ -->
+      <!-- Feature B: Submit New Post Form -->
+      <!-- ================================================================ -->
+      <!-- Users can add new posts with a title and URL -->
+      <!-- Form submits to /submit route which validates and adds the post -->
+      <div class="submit-form">
+        <h2>Submit a New Post</h2>
+        <form method="post" action="/submit">
+          <div class="form-group">
+            <label for="title">Title</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              placeholder="Enter post title"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="url">URL</label>
+            <input
+              type="text"
+              id="url"
+              name="url"
+              placeholder="https://example.com"
+              required
+            />
+          </div>
+          <button type="submit" class="submit-button">Submit Post</button>
+        </form>
+      </div>
+
+      <!-- ================================================================ -->
+      <!-- Main Feed: Visible Posts (sorted by score, highest first) -->
+      <!-- ================================================================ -->
+      <!-- Feature A: Posts are sorted by score descending -->
+      <!-- Feature C: Only shows posts where hidden=False -->
       <ul>
         {% for link in links %}
         <li>
+          <!-- Feature A: Upvote/Downvote Controls -->
+          <!-- Each form submits the post's URL to identify which post to update -->
           <div class="votes">
-            <button class="up">▲</button>
+            <!-- Upvote: Increment score by 1 -->
+            <form method="post" action="/upvote">
+              <input type="hidden" name="url" value="{{ link.url }}" />
+              <button class="up" type="submit">▲</button>
+            </form>
+
+            <!-- Display current score -->
             <div class="score" data-score>{{ link.score }}</div>
-            <button class="down">▼</button>
+
+            <!-- Downvote: Decrement score by 1 -->
+            <form method="post" action="/downvote">
+              <input type="hidden" name="url" value="{{ link.url }}" />
+              <button class="down" type="submit">▼</button>
+            </form>
           </div>
+
+          <!-- Post Content -->
           <div class="content">
             <p class="title">
               <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer"
@@ -109,9 +244,76 @@
               >{{ link.url }}</a
             >
           </div>
+
+          <!-- Feature C: Hide Button -->
+          <!-- Clicking this sets hidden=True and moves post to "Hidden posts" section -->
+          <form method="post" action="/toggle-hide">
+            <input type="hidden" name="url" value="{{ link.url }}" />
+            <button type="submit" class="hide-button">Hide</button>
+          </form>
         </li>
         {% endfor %}
       </ul>
+
+      <!-- ================================================================ -->
+      <!-- Feature C: Hidden Posts Section -->
+      <!-- ================================================================ -->
+      <!-- Only displayed if there are posts with hidden=True -->
+      <!-- Posts here are also sorted by score descending for consistency -->
+      {% if hidden_links %}
+      <div class="hidden-section">
+        <h2>Hidden posts</h2>
+        <ul>
+          {% for link in hidden_links %}
+          <li>
+            <!-- Feature A: Upvote/Downvote still work on hidden posts -->
+            <div class="votes">
+              <!-- Upvote: Increment score by 1 -->
+              <form method="post" action="/upvote">
+                <input type="hidden" name="url" value="{{ link.url }}" />
+                <button class="up" type="submit">▲</button>
+              </form>
+
+              <!-- Display current score -->
+              <div class="score" data-score>{{ link.score }}</div>
+
+              <!-- Downvote: Decrement score by 1 -->
+              <form method="post" action="/downvote">
+                <input type="hidden" name="url" value="{{ link.url }}" />
+                <button class="down" type="submit">▼</button>
+              </form>
+            </div>
+
+            <!-- Post Content -->
+            <div class="content">
+              <p class="title">
+                <a
+                  href="{{ link.url }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >{{ link.title }}</a
+                >
+              </p>
+              <a
+                class="url"
+                href="{{ link.url }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                >{{ link.url }}</a
+              >
+            </div>
+
+            <!-- Feature C: Unhide Button -->
+            <!-- Clicking this sets hidden=False and moves post back to main feed -->
+            <form method="post" action="/toggle-hide">
+              <input type="hidden" name="url" value="{{ link.url }}" />
+              <button type="submit" class="hide-button">Unhide</button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
     </main>
   </body>
 </html>
