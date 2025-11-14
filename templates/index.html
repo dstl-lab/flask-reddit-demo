@@ -87,13 +87,74 @@
     </header>
 
     <main class="container">
+      {% if error %}
+      <div
+        class="error"
+        role="alert"
+        style="color: crimson; margin-bottom: 12px"
+      >
+        {{ error }}
+      </div>
+      {% endif %}
+
+      <section style="margin-bottom: 18px">
+        <form method="post" action="{{ url_for('submit') }}">
+          <div
+            style="
+              display: flex;
+              gap: 8px;
+              flex-wrap: wrap;
+              align-items: center;
+            "
+          >
+            <input
+              name="title"
+              placeholder="Title"
+              value="{{ form_title|default('') }}"
+              style="
+                flex: 1;
+                padding: 8px;
+                border-radius: 6px;
+                border: 1px solid #ccc;
+              "
+            />
+            <input
+              name="url"
+              placeholder="https://example.com"
+              value="{{ form_url|default('') }}"
+              style="
+                flex: 1;
+                padding: 8px;
+                border-radius: 6px;
+                border: 1px solid #ccc;
+              "
+            />
+            <button type="submit" style="padding: 8px 12px; border-radius: 8px">
+              Add Post
+            </button>
+          </div>
+        </form>
+      </section>
       <ul>
         {% for link in links %}
         <li>
           <div class="votes">
-            <button class="up">▲</button>
+            <form
+              method="post"
+              action="{{ url_for('upvote', link_id=link.id) }}"
+            >
+              <button class="up" type="submit">▲</button>
+            </form>
             <div class="score" data-score>{{ link.score }}</div>
-            <button class="down">▼</button>
+            <form
+              method="post"
+              action="{{ url_for('downvote', link_id=link.id) }}"
+            >
+              <button class="down" type="submit">▼</button>
+            </form>
+            <form method="post" action="{{ url_for('hide', link_id=link.id) }}">
+              <button type="submit" title="Hide post">Hide</button>
+            </form>
           </div>
           <div class="content">
             <p class="title">
@@ -112,6 +173,43 @@
         </li>
         {% endfor %}
       </ul>
+      {% if hidden_posts and hidden_posts|length > 0 %}
+      <section style="margin-top: 24px">
+        <h2 style="font-size: 16px; margin: 0 0 8px">Hidden posts</h2>
+        <ul>
+          {% for link in hidden_posts %}
+          <li>
+            <div class="votes">
+              <div class="score" data-score>{{ link.score }}</div>
+              <form
+                method="post"
+                action="{{ url_for('unhide', link_id=link.id) }}"
+              >
+                <button type="submit">Unhide</button>
+              </form>
+            </div>
+            <div class="content">
+              <p class="title">
+                <a
+                  href="{{ link.url }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >{{ link.title }}</a
+                >
+              </p>
+              <a
+                class="url"
+                href="{{ link.url }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                >{{ link.url }}</a
+              >
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
     </main>
   </body>
 </html>
