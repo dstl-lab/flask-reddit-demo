@@ -50,16 +50,14 @@
         align-items: center;
         gap: 6px;
       }
-      button {
+      .votes a {
         appearance: none;
         border: 1px solid rgba(127, 127, 127, 0.4);
         background: transparent;
         border-radius: 8px;
         padding: 6px 8px;
         cursor: pointer;
-      }
-      button:hover {
-        background: rgba(127, 127, 127, 0.15);
+        text-decoration: none; 
       }
       .score {
         font-weight: 600;
@@ -87,13 +85,53 @@
     </header>
 
     <main class="container">
+      <form class="new-post-form" action="{{ url_for('new_post') }}" method="POST" style="margin-bottom: 24px;">
+          <h3>Submit a new post</h3>
+          <div style="margin-bottom: 8px;">
+              <label for="title" style="display: block;">Title:</label>
+              <input type="text" name="title" id="title" style="width: 100%;">
+          </div>
+          <div style="margin-bottom: 8px;">
+              <label for="url" style="display: block;">URL:</label>
+              <input type="text" name="url" id="url" placeholder="http://..." style="width: 100%;">
+          </div>
+          <button type="submit">Submit</button>
+      </form>
+      <h2>Visible Posts</h2>
       <ul>
         {% for link in links %}
         <li>
           <div class="votes">
-            <button class="up">▲</button>
+            <a class="up" href="{{ url_for('upvote', post_id=link.id) }}">▲</a>
             <div class="score" data-score>{{ link.score }}</div>
-            <button class="down">▼</button>
+            <a class="down" href="{{ url_for('downvote', post_id=link.id) }}">▼</a>
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer"
+                >{{ link.title }}</a
+              >
+            </p>
+            <a
+              class="url"
+              href="{{ link.url }}"
+              target="_blank"
+              rel="noopener noreferrer"
+              >{{ link.url }}</a
+            >
+            <br>
+            <a href="{{ url_for('hide_post', post_id=link.id) }}" style="font-size: 12px; color: gray;">(hide)</a>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      <hr> 
+      <h2>Hidden posts</h2>
+      <ul>
+        {% for link in hidden_posts %}
+        <li>
+          <div class="votes">
+            <div class="score" data-score>{{ link.score }}</div>
           </div>
           <div class="content">
             <p class="title">
@@ -110,6 +148,8 @@
             >
           </div>
         </li>
+        {% else %}
+        <li><div class="content"><p>No hidden posts.</p></div></li>
         {% endfor %}
       </ul>
     </main>
