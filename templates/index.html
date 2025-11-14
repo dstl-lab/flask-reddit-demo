@@ -43,6 +43,7 @@
         gap: 12px;
         padding: 12px 0;
         border-bottom: 1px solid rgba(127, 127, 127, 0.2);
+        align-items: center;
       }
       .votes {
         display: flex;
@@ -76,6 +77,43 @@
       a {
         color: inherit;
       }
+
+      /* inline-form helper so forms render without extra spacing */
+      form.inline {
+        display: inline-block;
+        margin: 0;
+      }
+
+      /* flash messages */
+      .flash {
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+      }
+      .flash.error {
+        background: #ffecec;
+        color: #a00;
+        border: 1px solid #f1c0c0;
+      }
+      .flash.success {
+        background: #ecfff0;
+        color: #0a6;
+        border: 1px solid #bfeac8;
+      }
+
+      /* submission area */
+      .submit-row {
+        display: flex;
+        gap: 8px;
+        margin: 12px 0 20px 0;
+      }
+      input[type="text"],
+      input[type="url"] {
+        padding: 8px;
+        border-radius: 6px;
+        border: 1px solid rgba(127, 127, 127, 0.2);
+        min-width: 0;
+      }
     </style>
   </head>
 
@@ -87,31 +125,153 @@
     </header>
 
     <main class="container">
-      <ul>
-        {% for link in links %}
-        <li>
-          <div class="votes">
-            <button class="up">▲</button>
-            <div class="score" data-score>{{ link.score }}</div>
-            <button class="down">▼</button>
-          </div>
-          <div class="content">
-            <p class="title">
-              <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer"
-                >{{ link.title }}</a
+      <!-- flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, msg in messages %}
+      <div class="flash {{ category }}">{{ msg }}</div>
+      {% endfor %} {% endif %} {% endwith %}
+
+      <!-- submission form -->
+      <section aria-labelledby="submit-heading">
+        <h2 id="submit-heading" style="margin-top: 0; font-size: 18px">
+          Submit a new post
+        </h2>
+        <form
+          action="{{ url_for('submit') }}"
+          method="post"
+          class="submit-row"
+          novalidate
+        >
+          <input name="title" placeholder="Title" type="text" required />
+          <input
+            name="url"
+            placeholder="https://example.com"
+            type="url"
+            required
+          />
+          <button type="submit">Submit</button>
+        </form>
+      </section>
+
+      <!-- visible posts -->
+      <section aria-labelledby="posts-heading">
+        <h2 id="posts-heading" style="margin-top: 8px; font-size: 18px">
+          Posts
+        </h2>
+        <ul>
+          {% for post in visible %}
+          <li>
+            <div class="votes" aria-hidden="false">
+              <!-- upvote form -->
+              <form
+                class="inline"
+                action="{{ url_for('vote', post_id=post.id) }}"
+                method="post"
               >
-            </p>
-            <a
-              class="url"
-              href="{{ link.url }}"
-              target="_blank"
-              rel="noopener noreferrer"
-              >{{ link.url }}</a
-            >
-          </div>
-        </li>
-        {% endfor %}
-      </ul>
+                <input type="hidden" name="direction" value="up" />
+                <button type="submit" aria-label="Upvote {{ post.title }}">
+                  ▲
+                </button>
+              </form>
+
+              <div class="score" data-score>{{ post.score }}</div>
+
+              <!-- downvote form -->
+              <form
+                class="inline"
+                action="{{ url_for('vote', post_id=post.id) }}"
+                method="post"
+              >
+                <input type="hidden" name="direction" value="down" />
+                <button type="submit" aria-label="Downvote {{ post.title }}">
+                  ▼
+                </button>
+              </form>
+            </div>
+
+            <div class="content">
+              <p class="title">
+                <a
+                  href="{{ post.url }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >{{ post.title }}</a
+                >
+              </p>
+              <a
+                class="url"
+                href="{{ post.url }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                >{{ post.url }}</a
+              >
+
+              <!-- controls: hide -->
+              <div style="margin-top: 8px">
+                <form
+                  class="inline"
+                  action="{{ url_for('hide', post_id=post.id) }}"
+                  method="post"
+                >
+                  <button type="submit">Hide</button>
+                </form>
+              </div>
+            </div>
+          </li>
+          {% else %}
+          <li>No posts yet.</li>
+          {% endfor %}
+        </ul>
+      </section>
+
+      <!-- hidden posts -->
+      <section aria-labelledby="hidden-heading" style="margin-top: 20px">
+        <h2 id="hidden-heading" style="font-size: 18px">Hidden posts</h2>
+        <ul>
+          {% for post in hidden %}
+          <li>
+            <div class="votes" aria-hidden="true">
+              <div style="height: 36px"></div>
+              <div class="score">{{ post.score }}</div>
+              <div style="height: 36px"></div>
+            </div>
+
+            <div class="content">
+              <p class="title">
+                <a
+                  href="{{ post.url }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >{{ post.title }}</a
+                >
+              </p>
+              <a
+                class="url"
+                href="{{ post.url }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                >{{ post.url }}</a
+              >
+
+              <!-- optional: unhide control (requires adding '/unhide/<id>' route) -->
+              {#
+              <div style="margin-top: 8px">
+                <form
+                  class="inline"
+                  action="{{ url_for('unhide', post_id=post.id) }}"
+                  method="post"
+                >
+                  <button type="submit">Unhide</button>
+                </form>
+              </div>
+              #}
+            </div>
+          </li>
+          {% else %}
+          <li>No hidden posts.</li>
+          {% endfor %}
+        </ul>
+      </section>
     </main>
   </body>
 </html>
